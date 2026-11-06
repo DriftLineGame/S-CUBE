@@ -4,6 +4,62 @@ The web demo uses browser features that the ESP32-S3 (240 MHz dual-core, ~512 KB
 no GPU) can't run as-is. This list shows what to swap for each effect when building the LVGL version.
 Target: 480×480 AMOLED (CO5300 driver, QSPI), 16-bit colour, double buffers in PSRAM.
 
+## Device look (v0.3+): build this one
+
+The demo now defaults to **Account → Look → Device**. Every element in it maps to a stock LVGL 9 widget or
+style property, and it animates at **30 fps**, a realistic full-screen rate for 480×480 RGB565 over QSPI.
+**Concept** is still there for comparison, but it is *not* device-ready. The table further down explains why.
+
+### Rules the Device look follows
+- Only these properties are animated: `x`, `y`, `width`, `height`, `radius`, `opa`, and colours (`bg_color`, `bg_grad_color`, `border_color`, `text_color`, `img_recolor`).
+- Gradients have ≤ 2 stops, vertical or horizontal only.
+- No backdrop blur, shaders, masks, text gradients, per-glyph effects, or full-screen scale/zoom transitions.
+- Soft shapes (glows, blobs) are **pre-rendered images** that move or recolour. Nothing is blurred at runtime.
+- Animation phases are integrated per frame (`phase += dt × speed`). Never use `time × speed`, because changing the speed then makes the phase jump. That was the v0.1 flicker.
+
+### Element → LVGL mapping
+| Element | LVGL implementation |
+|---|---|
+| Glass buttons (Home, back, X) | `lv_button`, radius = LV_RADIUS_CIRCLE, `bg_color` white `bg_opa` 10 %, `border_width` 1–2 px white `border_opa` 16 %. Pressed state: `bg_opa` 18 % (no scaling). |
+| Home background colour | One static 480×480 image (pre-rendered soft pink/violet/blue blobs, dithered). Not animated. |
+| Voice button tint | 2-stop vertical gradient pink → blue, `bg_opa` ~50 %. |
+| **Voice bubble** | `lv_obj` with `bg_color`/`bg_grad_color` (vertical) at 50 %/32 % opa, `border_width` 2 white at 32 %, `clip_corner = true`. The wobble animates `width`/`height` ±4 px (±14 px while thinking) in opposite phase, plus `radius` ±18 px while thinking, via `lv_anim`. Colours slowly rotate pink → violet → blue (custom `exec_cb` setting both gradient colours). |
+| Bubble rim highlight | Child `lv_obj`, inset 3 px, transparent, `border_side = LV_BORDER_SIDE_TOP`, 2–3 px white at 55 %. |
+| Bubble glow | One pre-rendered **soft ring image** (A8, hollow centre) at the bubble's resting size, `img_recolor` to the current colour. Only `opa` animates; it fades out while thinking. |
+| Living colour inside the bubble | 3 × **220 px soft-circle images** (A8, recoloured pink/violet/blue) that move on Lissajous paths inside the clipped bubble. Opacity rises while thinking and talking. |
+| Voice level → bubble | Mic RMS (I2S, smoothed) → bubble grows up to +18 px, glow `opa` up. |
+| Grow from button → bubble | Animate `x/y/width/height/radius` from the button's circle to the full rounded square (inset 24 px), with an overshoot path (`lv_anim_path_overshoot`). |
+| Thinking → reply | Animate the bubble size down to 168 px at the top, with an overshoot path. The reply label fades in below. |
+| **Chat edge glow** | 3 full-screen transparent `lv_obj`s with `radius` 44 and border only (4 px @ 85 %, 12 px @ 28 %, 26 px @ 11 %). `border_color` cycles. Plus 2 × **120 px soft-circle images** ("comets") moving along the screen perimeter in opposite directions. Border-only objects only redraw edge pixels. |
+| Words appearing | `lv_spangroup`: each new word is added as a span coloured pink, then its colour fades to white over 400 ms. No opacity or blur per word. |
+| "Thinking…" label | `lv_label`, `text_opa` pulses 35 % ↔ 100 %. |
+| User message bubble | `lv_obj`, 2-stop horizontal gradient pink → violet, radius 30. |
+| Keyboard | Custom `lv_buttonmatrix` (or `lv_keyboard` with a custom map). Solid #16151B panel, keys 41×58 px, key preview popup as a small `lv_obj`. |
+| Screen transitions | `lv_screen_load_anim` with **FADE_IN** (300–350 ms) for Home ↔ apps and **MOVE_LEFT/RIGHT** for list → chat. The keyboard and toast use `y` moves. |
+| Home intro | Buttons move up 36 px and fade in, staggered 70 ms, overshoot path. |
+| Brand text ("SCODE AI", "SCODE", "Ask anything") | Static pre-rendered gradient-text images. |
+| Lists (Chats, Account, messages) | Scrollable `lv_obj` with `LV_SCROLL_MOMENTUM`. Solid black header, no fade masks. |
+| Toggle / segmented control | `lv_switch` / `lv_buttonmatrix` (one-checked mode). |
+
+### Image assets to export (all small, A8 alpha so they can be recoloured)
+| Asset | Size | Approx. memory |
+|---|---|---|
+| Home background | 480×480 RGB565 | 460 KB (PSRAM) |
+| Soft circle (bubble blobs, comets) | 220×220 A8, reused at 120 px | 48 KB |
+| Bubble glow ring | 480×480 A8 (hollow) | 230 KB (PSRAM) |
+| Boot orb | 480×480 A8 | 230 KB (PSRAM) |
+| Gradient wordmarks | ~300×60 ARGB8565 each | ~50 KB each |
+
+### Frame budget (to measure on hardware)
+- Voice bubble frame: one ~430 px rounded rect + 3 sprites + border, about 60–70 % of the screen redrawn. This is the heaviest scene and should be measured first. If it misses 30 fps, drop the blobs to 2 and lower the wobble rate to 20 fps.
+- Chat edge glow: border pixels + 2 sprites only, so it's cheap.
+- The idle Home screen is static and costs nothing.
+
+---
+
+## Concept look: why it can't run on the device as-is
+
+
 | Demo effect | Why it won't port directly | Cheaper LVGL approach |
 |---|---|---|
 | **Backdrop blur / frosted glass** (`backdrop-filter: blur`) on buttons, keyboard, toast | Real-time Gaussian blur of what's behind every frame is far too slow on the CPU | Fake it: draw glass as a **semi-transparent fill** (`lv_obj_set_style_bg_opa` ~20–30 %) with a **1 px light top border** and a soft **pre-rendered highlight PNG** (A8 or ARGB8565). Keep the backgrounds behind glass mostly static so nothing needs to be blurred. |

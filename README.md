@@ -15,7 +15,8 @@ A design prototype of **SCOS**, the interface for the S-CUBE 1 handheld (Wavesha
 ## URL options
 - `?skipboot`: start on Home.
 - `?bare`: only the 480×480 screen at 1:1, with no device frame (used for screenshots).
-- `?nogl`: force the CSS fallback for the bubble and glow.
+- `?look=device` / `?look=concept`: pick the look (default: Device, which only uses what the real S-CUBE can draw at 30 fps).
+- `?nogl`: force the CSS fallback for the Concept bubble and glow.
 - `?lowfx`: render shaders at 1× resolution.
 - `?nosr`: skip speech recognition and use the demo transcript.
 
@@ -27,3 +28,4 @@ A design prototype of **SCOS**, the interface for the S-CUBE 1 handheld (Wavesha
 ## Versions
 - **v0.1**: first build. Boot, Home, Voice (liquid bubble, hold to talk, thinking morph, spoken reply), Chat (custom keyboard, edge glow, streamed replies), Chats history, Account and Settings.
 - **v0.2**: fixed flicker in the liquid-glass bubble (phase jumps when the speed changed, 16-bit float precision on iPhone, per-word glow spikes).
+- **v0.3**: new **Device** look, now the default: everything maps to LVGL on the ESP32-S3 and animates at 30 fps (see PORTING.md). The original shader/glass look stays under Account → Look → Concept.

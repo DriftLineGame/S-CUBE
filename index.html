@@ -237,6 +237,48 @@ body.kb #caret{display:block}
 #fxFallback .fb{position:absolute;background:linear-gradient(135deg,rgba(255,79,179,.55),rgba(139,92,246,.45),rgba(59,130,246,.55));box-shadow:inset 0 2px 0 rgba(255,255,255,.4),inset 0 0 40px rgba(255,255,255,.15),0 0 60px rgba(139,92,246,.4);opacity:0}
 #fxFallback .fbe{position:absolute;inset:0;border-radius:44px;opacity:0;box-shadow:inset 0 0 28px 6px rgba(255,79,179,.7),inset 0 0 60px 10px rgba(59,130,246,.45);animation:fbe 2.4s ease-in-out infinite alternate}
 @keyframes fbe{to{box-shadow:inset 0 0 36px 8px rgba(59,130,246,.75),inset 0 0 70px 14px rgba(255,79,179,.45)}}
+
+/* ================= DEVICE LOOK =================
+   Only things LVGL 9 on the ESP32-S3 can draw at 480×480: solid fills, ≤2-stop vertical/horizontal gradients,
+   rounded rects + borders, static pre-rendered images, moving small soft-circle sprites, opacity/position/size
+   animation. No backdrop blur, shaders, masks, text effects or full-screen scaling. Animations run at 30 fps. */
+#dfx{position:absolute;inset:0;z-index:5;pointer-events:none;display:none}
+#dfx .bb{position:absolute;left:0;top:0}
+#dBub{overflow:hidden;border:2px solid rgba(255,255,255,.32)}
+#dBub .hl{position:absolute;left:3px;top:3px;right:3px;bottom:3px;border-top:2.5px solid rgba(255,255,255,.55);pointer-events:none}
+#dHalo1{background:transparent}
+.blob{position:absolute;left:0;top:0;width:220px;height:220px;margin:-110px 0 0 -110px;border-radius:50%}
+.blob.b1{background:radial-gradient(circle,rgba(255,79,179,.95) 0,rgba(255,79,179,0) 70%)}
+.blob.b2{background:radial-gradient(circle,rgba(139,92,246,.95) 0,rgba(139,92,246,0) 70%)}
+.blob.b3{background:radial-gradient(circle,rgba(59,130,246,.95) 0,rgba(59,130,246,0) 70%)}
+#dEdge{position:absolute;inset:0;opacity:0}
+#dEdge .ring{position:absolute;inset:0;border-radius:44px;border-style:solid}
+#dEdge .comet{position:absolute;left:0;top:0;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%}
+#dEdge .comet.c1{background:radial-gradient(circle,rgba(255,79,179,.95) 0,rgba(255,79,179,0) 70%)}
+#dEdge .comet.c2{background:radial-gradient(circle,rgba(59,130,246,.95) 0,rgba(59,130,246,0) 70%)}
+body.dev #fx{display:none!important}
+body.dev .glass{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(255,255,255,.10);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.16)}
+body.dev .hb.voice .glass{background:linear-gradient(180deg,rgba(255,79,179,.52),rgba(59,130,246,.44))}
+body.dev #home .amb{animation:none}
+body.dev .press:active,body.dev .press.pd,body.dev .row.press:active{transform:none;filter:brightness(1.45);transition:none}
+body.dev .scroll,body.dev #vReply{-webkit-mask-image:none;mask-image:none}
+body.dev .w{animation:none;transition:color .4s linear}
+body.dev .w.nw{color:var(--pink);transition:none}
+body.dev .m.u .b{background:linear-gradient(90deg,var(--pink),var(--violet));box-shadow:none}
+body.dev #kb{-webkit-backdrop-filter:none;backdrop-filter:none;background:#16151b;box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
+body.dev .k{box-shadow:none}
+body.dev .k.send{background:linear-gradient(90deg,var(--pink),var(--violet));box-shadow:none}
+body.dev #micBtn{background:linear-gradient(180deg,var(--pink),var(--violet));box-shadow:none}
+body.dev .av{box-shadow:none;background:linear-gradient(180deg,var(--pink),var(--violet))}
+body.dev .bar i{background:linear-gradient(90deg,var(--pink),var(--violet))}
+body.dev .tog.on{background:var(--violet)}
+body.dev .thinking{background:none;-webkit-text-fill-color:#fff;color:#fff;animation:dthink .9s ease-in-out infinite alternate}
+@keyframes dthink{from{opacity:.35}to{opacity:1}}
+body.dev #toast{-webkit-backdrop-filter:none;backdrop-filter:none;background:#2a2832}
+body.dev #boot .logo{background:none;-webkit-text-fill-color:#fff;color:#fff}
+body.dev #vHint,body.dev #vTrans{text-shadow:none}
+body.dev #vCenter .ic{box-shadow:none}
+body.dev #pop{box-shadow:none}
 </style>
 </head>
 <body>
@@ -324,6 +366,11 @@ body.kb #caret{display:block}
     </div>
 
     <canvas id="fx" width="480" height="480"></canvas>
+    <div id="dfx">
+      <div class="bb" id="dHalo1"></div>
+      <div class="bb" id="dBub"><i class="blob b1"></i><i class="blob b2"></i><i class="blob b3"></i><div class="hl"></div></div>
+      <div id="dEdge"><div class="ring" id="dR3"></div><div class="ring" id="dR2"></div><div class="ring" id="dR1"></div><i class="comet c1"></i><i class="comet c2"></i></div>
+    </div>
     <div id="fxFallback"><div class="fb" id="fbB"></div><div class="fbe" id="fbE"></div></div>
     <div id="toast"></div>
     <div id="sleep"></div>
@@ -336,7 +383,7 @@ body.kb #caret{display:block}
 <script>
 (()=>{
 'use strict';
-const VERSION = '0.2';
+const VERSION = '0.3';
 const $ = (s, r=document) => r.querySelector(s);
 const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
 const Q = new URLSearchParams(location.search);
@@ -349,7 +396,9 @@ const store = {
   get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
   set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 };
-const settings = Object.assign({ textSize:'M', voice:true, aux:'talk' }, store.get('scos.settings', {}));
+const settings = Object.assign({ textSize:'M', voice:true, aux:'talk', look:'device' }, store.get('scos.settings', {}));
+if (Q.get('look')) settings.look = Q.get('look') === 'concept' ? 'concept' : 'device';
+const isDev = () => settings.look !== 'concept';
 const saveSettings = () => store.set('scos.settings', settings);
 
 /* ================= animation wrapper (GSAP, or a tiny fallback) ================= */
@@ -527,8 +576,77 @@ function fbLoop(){ // CSS fallback renderer for the bubble and edge glow
   };
   loop();
 }
-function fxNeeded(){ if (B.alpha > .0005 || B.edge > .0005) fx.start(); }
-function fxMaybeStop(){ if (B.alpha <= .001 && B.edge <= .001) fx.stop(); }
+/* Device renderer: what the LVGL build will do. 30 fps, only moves/resizes rounded rects and soft-circle sprites. */
+const PAL = [[255,79,179],[139,92,246],[59,130,246]];
+function palRGB(x){ x = ((x % 1) + 1) % 1 * 3; const i = Math.floor(x), f = x - i, a = PAL[i % 3], b = PAL[(i+1) % 3], e = f*f*(3-2*f);
+  return [0,1,2].map(k => Math.round(a[k] + (b[k]-a[k])*e)); }
+const rgba = (c, o) => `rgba(${c[0]},${c[1]},${c[2]},${o.toFixed(3)})`;
+const dfx = (() => {
+  const root = $('#dfx'), bub = $('#dBub'), h1 = $('#dHalo1'), hl = $('#dBub .hl'), blobs = $$('#dBub .blob'),
+        edge = $('#dEdge'), r1 = $('#dR1'), r2 = $('#dR2'), r3 = $('#dR3'), comets = $$('#dEdge .comet');
+  r1.style.borderWidth = '4px'; r2.style.borderWidth = '12px'; r3.style.borderWidth = '26px';
+  let running = false, lastDraw = 0, lastT = 0, hue = 0, morph = 0, run = 0;
+  const box = (el, x, y, w, h, r) => { el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.width = w + 'px'; el.style.height = h + 'px'; el.style.borderRadius = r + 'px'; };
+  // point on the screen's perimeter, u in [0,1)
+  const perim = u => { u = ((u % 1) + 1) % 1 * 4; const s = Math.floor(u), f = u - s, m = 6, L = 480 - m;
+    return s === 0 ? [m + f*(L-m), m] : s === 1 ? [L, m + f*(L-m)] : s === 2 ? [L - f*(L-m), L] : [m, L - f*(L-m)]; };
+  function draw(now){
+    const dt = lastT ? Math.min(.1, (now - lastT)/1000) : .033; lastT = now;
+    B.lvl += (B.lvlT - B.lvl) * (B.lvlT > B.lvl ? .3 : .15); B.pulse *= .85;
+    // integrated phases (no jumps when speeds change)
+    hue += dt * (.035 + .09*B.think); morph += dt * (1 + 1.2*B.think + .8*B.lvl); run += dt * (.09 + .05*B.pulse);
+    const t = now/1000, th = B.think, lv = B.lvl;
+    if (B.alpha > .001) {
+      const sq = Math.sin(morph*1.6) * (4*B.wob + 14*th);          // gentle squish (lv_anim on width/height)
+      const grow = lv * 18;
+      const w = B.hx*2 + grow + sq, h = B.hy*2 + grow - sq;
+      const r = Math.max(8, Math.min(B.r + Math.sin(morph*1.1)*18*th, w/2, h/2));
+      const x = B.cx - w/2, y = B.cy - h/2 + Math.sin(t*.9)*2*B.wob;
+      const c1 = palRGB(hue), c2 = palRGB(hue + .4);
+      box(bub, x, y, w, h, r);
+      bub.style.background = `linear-gradient(180deg,${rgba(c1,.50 + .15*th)},${rgba(c2,.32 + .15*th)})`;
+      hl.style.borderRadius = Math.max(4, r - 3) + 'px';
+      // glow = one pre-rendered soft glow image on the device: sized to the bubble's resting size (not the wobble), recoloured, opacity animated
+      // glow = one pre-rendered soft ring image on the device (hollow centre), at the bubble's resting size, recoloured;
+      // it fades out while thinking, when the bubble morphs away from that size
+      const gi = 8;
+      box(h1, B.cx - B.hx + gi, B.cy - B.hy + gi, B.hx*2 - gi*2, B.hy*2 - gi*2, Math.max(4, B.r - gi));
+      h1.style.boxShadow = `0 0 46px ${gi}px ${rgba(c1, .34 + .25*lv)}`;
+      h1.style.opacity = (B.alpha * (1 - th)).toFixed(3);
+      blobs.forEach((b, i) => {
+        const k = morph*(.45 + i*.12) + i*2.1, spread = .22 + .14*th + .06*lv;
+        b.style.transform = `translate(${(w/2 + Math.cos(k)*w*spread).toFixed(1)}px,${(h/2 + Math.sin(k*1.3)*h*spread).toFixed(1)}px)`;
+        b.style.opacity = (.22 + .5*th + .25*lv).toFixed(3);
+      });
+      bub.style.opacity = B.alpha.toFixed(3);
+      bub.style.display = h1.style.display = 'block';
+    } else bub.style.display = h1.style.display = 'none';
+    if (B.edge > .001) {
+      const c = palRGB(hue*2);
+      edge.style.opacity = B.edge.toFixed(3);
+      r1.style.borderColor = rgba(c, .85); r2.style.borderColor = rgba(palRGB(hue*2 + .2), .28); r3.style.borderColor = rgba(palRGB(hue*2 + .4), .11);
+      comets.forEach((cm, i) => { const p = perim(i ? -run + .5 : run); cm.style.transform = `translate(${p[0].toFixed(1)}px,${p[1].toFixed(1)}px)`; cm.style.opacity = (.75 + .25*B.pulse).toFixed(3); });
+      edge.style.display = 'block';
+    } else edge.style.display = 'none';
+  }
+  function frame(now){
+    if (!running) return;
+    requestAnimationFrame(frame);
+    if (now - lastDraw < 32) return; // 30 fps, like the panel
+    lastDraw = now; draw(now);
+  }
+  return { start(){ if (running) return; running = true; lastT = 0; root.style.display = 'block'; requestAnimationFrame(frame); },
+           stop(){ running = false; root.style.display = 'none'; } };
+})();
+const FX = () => isDev() ? dfx : fx;
+function applyLook(){
+  document.body.classList.toggle('dev', isDev());
+  fx.stop(); dfx.stop();
+  if (G) G.ticker.fps(isDev() ? 30 : 240);
+  const c = $('#caption span'); if (c && typeof captionText === 'function') c.innerHTML = captionText();
+}
+function fxNeeded(){ if (B.alpha > .0005 || B.edge > .0005) FX().start(); }
+function fxMaybeStop(){ if (B.alpha <= .001 && B.edge <= .001) FX().stop(); }
 
 /* ================= fake SCODE AI ================= */
 const KB = [
@@ -605,7 +723,7 @@ const scr = id => $('#'+id);
 function showOnly(id){ $$('.scr').forEach(s => s.classList.toggle('on', s.id === id)); }
 async function go(id, opt={}){
   if (navBusy || id === cur) return; navBusy = true;
-  const from = scr(cur), to = scr(id), type = opt.type || 'zoom';
+  const from = scr(cur), to = scr(id); let type = opt.type || 'zoom'; if (isDev() && type === 'zoom') type = 'fade';
   if (!opt.back) stack.push(cur);
   onLeave(cur, id); onEnter(id, opt);
   to.classList.add('on'); A.kill(from); A.kill(to);
@@ -620,7 +738,7 @@ async function go(id, opt={}){
     A.fromTo(to, {x:160*dir, opacity:0, scale:1}, {x:0, opacity:1, duration:.55, ease:'expo.out'});
     A.to(from, {x:-90*dir, opacity:0, duration:.4, ease:'power2.out'});
   } else { // fade
-    A.fromTo(to, {opacity:0, scale:1.03, x:0}, {opacity:1, scale:1, duration:.5, ease:'power2.out'});
+    A.fromTo(to, {opacity:0, scale:isDev() ? 1 : 1.03, x:0}, {opacity:1, scale:1, duration:isDev() ? .35 : .5, ease:'power2.out'});
     A.to(from, {opacity:0, duration:.35});
   }
   const prev = cur; cur = id;
@@ -666,15 +784,16 @@ async function boot(fast){
   if (fast) { showOnly('home'); cur = 'home'; homeIntro(); return; }
   A.to(scr('off'), {opacity:0, duration:.3});
   await sleep(300); showOnly('boot'); A.set(scr('off'), {opacity:1}); cur = 'boot';
-  A.set(logo, {opacity:0, scale:.86, y:10}); A.set(os, {opacity:0, y:10}); A.set(by, {opacity:0}); A.set(orb, {opacity:0, scale:.6});
+  const dv = isDev();
+  A.set(logo, {opacity:0, scale:dv ? 1 : .86, y:dv ? 24 : 10}); A.set(os, {opacity:0, y:10}); A.set(by, {opacity:0}); A.set(orb, {opacity:0, scale:dv ? 1 : .6});
   logo.style.transition = 'none'; logo.style.backgroundPosition = '100% 0';
   A.to(orb, {opacity:1, scale:1, duration:1.6, ease:'power2.out'});
   A.to(logo, {opacity:1, scale:1, y:0, duration:1.1, ease:'expo.out'});
-  setTimeout(()=>{ logo.style.transition = 'background-position 1.6s cubic-bezier(.4,0,.2,1)'; logo.style.backgroundPosition = '0% 0'; }, 250);
+  if (!dv) setTimeout(()=>{ logo.style.transition = 'background-position 1.6s cubic-bezier(.4,0,.2,1)'; logo.style.backgroundPosition = '0% 0'; }, 250);
   A.to(os, {opacity:1, y:0, duration:.8, delay:.55, ease:'expo.out'});
   A.to(by, {opacity:1, duration:.8, delay:1.0});
   await sleep(2900);
-  A.to([logo, os], {opacity:0, scale:1.08, duration:.5, ease:'power2.in', stagger:.04});
+  A.to([logo, os], {opacity:0, scale:dv ? 1 : 1.08, y:dv ? -16 : 0, duration:.5, ease:'power2.in', stagger:.04});
   A.to([by, orb], {opacity:0, duration:.5});
   await sleep(420);
   showOnly('home'); cur = 'home'; stack = [];
@@ -685,14 +804,15 @@ function homeIntro(){
   A.set(scr('home'), {opacity:1, scale:1, x:0});
   A.fromTo(amb, {opacity:0}, {opacity:1, duration:1.4});
   A.fromTo(sb, {opacity:0, y:-14}, {opacity:1, y:0, duration:.7, ease:'expo.out', delay:.15});
-  A.fromTo(hb, {opacity:0, scale:.55}, {opacity:1, scale:1, duration:.9, ease: G ? 'elastic.out(1,0.72)' : 'back.out', stagger:.07});
+  if (isDev()) A.fromTo(hb, {opacity:0, y:36, scale:1}, {opacity:1, y:0, duration:.6, ease:'back.out(1.6)', stagger:.07});
+  else A.fromTo(hb, {opacity:0, scale:.55}, {opacity:1, scale:1, duration:.9, ease: G ? 'elastic.out(1,0.72)' : 'back.out', stagger:.07});
 }
 async function powerOff(){
   if (!powered) return;
   if (cur === 'voice') stopVoiceAll();
   speechStop(); kbHide(true);
   A.to(screenEl.children, {opacity:0, duration:.5});
-  B.alpha = 0; B.edge = 0; fx.stop();
+  B.alpha = 0; B.edge = 0; fx.stop(); dfx.stop();
   await sleep(520);
   powered = false; asleep = false; $('#sleep').classList.remove('on'); stack = [];
   showOnly('off'); cur = 'off';
@@ -837,17 +957,18 @@ async function send(){
   conv.messages.push({ r:'u', t:q }); commitConv(conv); usage.msgs++; store.set('scos.usage', usage);
   $('#chatEmpty').style.display = 'none';
   const um = msgEl({ r:'u', t:q }); msgs.appendChild(um);
-  A.fromTo(um, { opacity:0, scale:.6, y:40 }, { opacity:1, scale:1, y:0, duration:.7, ease: G ? 'elastic.out(1,0.8)' : 'back.out' });
+  if (isDev()) A.fromTo(um, { opacity:1, scale:1, y:70 }, { y:0, duration:.5, ease:'back.out(1.5)' });
+  else A.fromTo(um, { opacity:0, scale:.6, y:40 }, { opacity:1, scale:1, y:0, duration:.7, ease: G ? 'elastic.out(1,0.8)' : 'back.out' });
   scrollBottom(true);
   // thinking: liquid edge glow
   const am = document.createElement('div'); am.className = 'm a'; am.innerHTML = '<div class="b"><span class="thinking">Thinking…</span></div>';
   await sleep(350); msgs.appendChild(am); A.fromTo(am, {opacity:0, y:16}, {opacity:1, y:0, duration:.5, ease:'expo.out'}); scrollBottom(true);
-  B.alpha = 0; A.kill(B); B.edge = .001; fx.start(); A.to(B, { edge:1, duration:.9, ease:'power2.out' });
+  B.alpha = 0; A.kill(B); B.edge = .001; FX().start(); A.to(B, { edge:1, duration:.9, ease:'power2.out' });
   const ans = aiReply(q);
   await sleep(2600 + Math.random()*600);
   A.to(B, { edge:.32, duration:.6 });
   const bEl = $('.b', am); bEl.innerHTML = '';
-  A.fromTo(am, {scale:.97}, {scale:1, duration:.5, ease:'back.out(2)'});
+  if (!isDev()) A.fromTo(am, {scale:.97}, {scale:1, duration:.5, ease:'back.out(2)'});
   await streamWords(bEl, ans, { base:62, onWord(){ B.pulse = 1; if (nearBottom()) scrollBottom(); } });
   conv.messages.push({ r:'a', t:ans }); commitConv(conv);
   A.to(B, { edge:0, duration:.9, onComplete: fxMaybeStop });
@@ -859,6 +980,7 @@ function streamWords(el, txt, { base=70, onWord, wait }={}){
     for (let i = 0; i < words.length; i++) {
       if (wait) await wait(i);
       const s = document.createElement('span'); s.className = 'w'; s.textContent = words[i];
+      if (isDev()) { s.classList.add('nw'); setTimeout(() => s.classList.remove('nw'), 70); }
       el.appendChild(s); if (i < words.length - 1) el.appendChild(document.createTextNode(' '));
       onWord && onWord(i);
       if (!wait) await sleep(base + Math.random()*40 + (/[.,!?]$/.test(words[i]) ? 160 : 0));
@@ -898,6 +1020,7 @@ function renderAccount(){
     <div class="card set" style="padding:0">
       <div class="sr">Text size<div class="seg" id="segTS">${['S','M','L'].map((s,i)=>`<button data-v="${s}" class="${settings.textSize===s?'on':''}" style="font-size:${[18,23,28][i]}px">A</button>`).join('')}</div></div>
       <button class="sr" id="rVoice">Voice replies<div class="tog ${settings.voice?'on':''}"></div></button>
+      <button class="sr" id="rLook">Look<span class="v"><span>${isDev() ? 'Device' : 'Concept'}</span>${CHEV}</span></button>
       <button class="sr" id="rAux">Side button<span class="v"><span>${AUX[settings.aux]}</span>${CHEV}</span></button>
       <div class="sr">Model<span class="v">General Ultra</span></div>
       <div class="sr">Version<span class="v">SCOS v${VERSION}</span></div>
@@ -906,6 +1029,7 @@ function renderAccount(){
     <div class="foot">S-CUBE 1 · SCOS v${VERSION} · Powered by SCODE</div>`;
   $$('#segTS button').forEach(b => b.addEventListener('click', () => { settings.textSize = b.dataset.v; saveSettings(); applyTextSize(); $$('#segTS button').forEach(x => x.classList.toggle('on', x === b)); }));
   $('#rVoice').addEventListener('click', () => { settings.voice = !settings.voice; saveSettings(); $('#rVoice .tog').classList.toggle('on', settings.voice); if (!settings.voice) speechStop(); });
+  $('#rLook').addEventListener('click', () => { settings.look = isDev() ? 'concept' : 'device'; saveSettings(); applyLook(); $('#rLook .v span').textContent = isDev() ? 'Device' : 'Concept'; toast(isDev() ? 'Device look · 30 fps, LVGL-ready' : 'Concept look · shaders & glass'); });
   $('#rAux').addEventListener('click', () => { const k = Object.keys(AUX); settings.aux = k[(k.indexOf(settings.aux)+1) % k.length]; saveSettings(); $('#rAux .v span').textContent = AUX[settings.aux]; $('#caption span').innerHTML = captionText(); });
   $('#rReset').addEventListener('click', e => {
     const b = e.currentTarget;
@@ -915,7 +1039,7 @@ function renderAccount(){
   A.fromTo($$('.card, .sec, .foot', a), {opacity:0, y:22}, {opacity:1, y:0, duration:.6, ease:'expo.out', stagger:.05, delay:.08});
   a.scrollTop = 0;
 }
-function captionText(){ return `PWR: tap sleep · hold off &nbsp;·&nbsp; BOOT: back &nbsp;·&nbsp; side button: ${({talk:'hold to talk', chat:'new chat', home:'home'})[settings.aux]}`; }
+function captionText(){ return `PWR: tap sleep · hold off &nbsp;·&nbsp; BOOT: back &nbsp;·&nbsp; side button: ${({talk:'hold to talk', chat:'new chat', home:'home'})[settings.aux]}<br>${isDev() ? 'Device look · 30 fps · LVGL-ready' : 'Concept look · not device-ready'}`; }
 $('#caption span').innerHTML = captionText();
 
 /* ================= speech output ================= */
@@ -965,17 +1089,18 @@ function openVoice({ origin, fromHome, conv:c }={}){
   // fade the rest of home away while the circle grows
   if (fromHome) {
     const others = $$('.hb').filter(h => h.dataset.go !== 'voice');
-    A.to(others, { opacity:0, scale:.8, duration:.35, ease:'power2.out', stagger:.03 });
+    A.to(others, { opacity:0, scale:isDev() ? 1 : .8, duration:.35, ease:'power2.out', stagger:.03 });
     A.to($('.hb.voice'), { opacity:0, duration:.12 });
     A.to($('#home .sbar'), { opacity:0, duration:.3 });
-  } else A.to(from, { opacity:0, scale:.96, duration:.4 });
+  } else A.to(from, { opacity:0, scale:isDev() ? 1 : .96, duration:.4 });
   const v = scr('voice'); v.classList.add('on'); A.set(v, {opacity:1, scale:1, x:0});
   setVoiceUI('idle', true);
   A.kill(B);
   A.to(B, { cx:FULL.cx, cy:FULL.cy, duration:.75, ease:'expo.out' });
   A.to(B, { hx:FULL.hx, hy:FULL.hy, r:FULL.r, duration:.95, ease: G ? 'elastic.out(1,0.78)' : 'back.out' });
   A.to(B, { wob:1, duration:1.2, delay:.4 });
-  A.fromTo([$('#vCenter'), $('#vX')], { opacity:0, scale:.85 }, { opacity:1, scale:1, duration:.6, delay:.35, ease:'expo.out', stagger:.08 });
+  if (isDev()) A.fromTo([$('#vCenter'), $('#vX')], { opacity:0, y:14, scale:1 }, { opacity:1, y:0, duration:.5, delay:.35, ease:'power2.out', stagger:.08 });
+  else A.fromTo([$('#vCenter'), $('#vX')], { opacity:0, scale:.85 }, { opacity:1, scale:1, duration:.6, delay:.35, ease:'expo.out', stagger:.08 });
   setTimeout(() => { from.classList.remove('on'); A.set(from, {opacity:1, scale:1}); $$('.hb').forEach(h => A.set(h, {opacity:1, scale:1})); A.set($('#home .sbar'), {opacity:1}); navBusy = false; V.state = 'idle'; }, 650);
 }
 function setVoiceUI(s, instant){
@@ -997,7 +1122,7 @@ function closeVoice(toHome){
   A.to(B, { hx:40, hy:40, r:40, cx:240, cy:240, alpha:0, think:0, lvl:0, lvlT:0, duration:.55, ease:'power2.in', onComplete: fxMaybeStop });
   A.to([$('#vX'), $('#vCenter'), $('#vReply'), $('#vTrans'), $('#vState')], { opacity:0, duration:.25 });
   const t = scr(target); t.classList.add('on'); t.style.transformOrigin = '50% 50%';
-  A.fromTo(t, { opacity:0, scale:1.06, x:0 }, { opacity:1, scale:1, duration:.6, delay:.2, ease:'expo.out' });
+  A.fromTo(t, { opacity:0, scale:isDev() ? 1 : 1.06, x:0 }, { opacity:1, scale:1, duration:.6, delay:.2, ease:'expo.out' });
   setTimeout(() => { scr('voice').classList.remove('on'); cur = target; stack = target === 'chat' ? ['home'] : []; navBusy = false; V.state = 'off'; }, 700);
 }
 $('#vX').addEventListener('click', e => { e.stopPropagation(); closeVoice(); });
@@ -1135,6 +1260,7 @@ function stopVoiceAll(){
 }
 
 /* ================= start ================= */
+applyLook();
 fit();
 if (!G) console.warn('GSAP unavailable: using CSS/rAF fallback animations');
 window.SCOS = { version:VERSION, go, boot, openVoice, closeVoice, talkStart, talkEnd, voiceAsk, send, kbShow, kbHide, back, B, get cur(){ return cur; },

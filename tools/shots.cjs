@@ -1,5 +1,5 @@
 // Screenshot + frame-strip capture for the SCOS demo.
-// Usage: node tools/shots.cjs <outDir> [path/to/gsap.min.js]
+// Usage: [LOOK=device|concept] node tools/shots.cjs <outDir> [path/to/gsap.min.js]
 // If a local gsap file is given, CDN requests for GSAP are served from it (useful offline / in CI).
 const { chromium, devices } = require('playwright');
 const fs = require('fs'), path = require('path'), { execSync } = require('child_process');
@@ -7,6 +7,7 @@ const fs = require('fs'), path = require('path'), { execSync } = require('child_
 const OUT = path.resolve(process.argv[2] || 'shots');
 const GSAP = process.argv[3];
 const URL = 'file://' + path.resolve(__dirname, '..', 'index.html');
+const LOOK = 'look=' + (process.env.LOOK || 'device'); // LOOK=concept for the shader/glass look
 fs.mkdirSync(OUT, { recursive: true });
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
@@ -29,7 +30,7 @@ async function strip(page, name, frames, gap, sel = '#screen'){
   await prep(ctx);
   const p = await ctx.newPage();
   const logs = []; p.on('console', m => logs.push(m.type() + ': ' + m.text())); p.on('pageerror', e => logs.push('PAGEERROR: ' + e.message));
-  await p.goto(URL + '?bare');
+  await p.goto(URL + '?bare&' + LOOK);
   await p.evaluate(() => document.fonts.ready);
   const shot = n => p.screenshot({ path: path.join(OUT, n + '.png') });
   await shot('01-off');
@@ -79,7 +80,7 @@ async function strip(page, name, frames, gap, sel = '#screen'){
   const ictx = await browser.newContext({ ...devices['iPhone 15'], recordVideo: { dir: path.join(OUT, '_video'), size: { width: 393, height: 659 } } });
   await prep(ictx);
   const ip = await ictx.newPage();
-  await ip.goto(URL);
+  await ip.goto(URL + '?' + LOOK);
   await ip.evaluate(() => document.fonts.ready);
   const ishot = n => ip.screenshot({ path: path.join(OUT, n + '.png') });
   await ishot('i01-off');
