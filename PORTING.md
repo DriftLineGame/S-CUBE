@@ -29,8 +29,8 @@ style property, and it animates at **30 fps**, a realistic full-screen rate for 
 | Living colour inside the bubble | 3 × **220 px soft-circle images** (A8, recoloured pink/violet/blue) that move on Lissajous paths inside the clipped bubble. Opacity rises while thinking and talking. |
 | Voice level → bubble | Mic RMS (I2S, smoothed) → bubble grows up to +18 px, glow `opa` up. |
 | Grow from button → bubble | Animate `x/y/width/height/radius` from the button's circle to the full rounded square (inset 24 px), with an overshoot path (`lv_anim_path_overshoot`). |
-| Thinking → reply | Animate the bubble size down to 168 px at the top, with an overshoot path. The reply label fades in below. |
-| **Chat edge glow** | 3 full-screen transparent `lv_obj`s with `radius` 44 and border only (4 px @ 85 %, 12 px @ 28 %, 26 px @ 11 %). `border_color` cycles. Plus 2 × **120 px soft-circle images** ("comets") moving along the screen perimeter in opposite directions. Border-only objects only redraw edge pixels. |
+| Release → thinking → reply | The bubble shrinks to 140 px and fades out (`opa`), then the **thin edge gradient** (below) fades in for ~5 s. The transcript (34 px) and then the reply (33 px) use the whole screen. The ring dims to 40 % while the reply is spoken, then fades out. Holding again regrows the bubble from the centre. |
+| **Thin edge gradient** (the loading animation in Chat *and* Voice) | 2 full-screen transparent `lv_obj`s with `radius` 44 and border only: 4 px @ 90 % plus a faint 10 px band @ 20 %. `border_color` cycles pink → violet → blue. Border-only objects only redraw edge pixels, and no sprites are used. |
 | Words appearing | `lv_spangroup`: each new word is added as a span coloured pink, then its colour fades to white over 400 ms. No opacity or blur per word. |
 | "Thinking…" label | `lv_label`, `text_opa` pulses 35 % ↔ 100 %. |
 | User message bubble | `lv_obj`, 2-stop horizontal gradient pink → violet, radius 30. |
@@ -45,14 +45,14 @@ style property, and it animates at **30 fps**, a realistic full-screen rate for 
 | Asset | Size | Approx. memory |
 |---|---|---|
 | Home background | 480×480 RGB565 | 460 KB (PSRAM) |
-| Soft circle (bubble blobs, comets) | 220×220 A8, reused at 120 px | 48 KB |
+| Soft circle (bubble blobs) | 220×220 A8 | 48 KB |
 | Bubble glow ring | 480×480 A8 (hollow) | 230 KB (PSRAM) |
 | Boot orb | 480×480 A8 | 230 KB (PSRAM) |
 | Gradient wordmarks | ~300×60 ARGB8565 each | ~50 KB each |
 
 ### Frame budget (to measure on hardware)
 - Voice bubble frame: one ~430 px rounded rect + 3 sprites + border, about 60–70 % of the screen redrawn. This is the heaviest scene and should be measured first. If it misses 30 fps, drop the blobs to 2 and lower the wobble rate to 20 fps.
-- Chat edge glow: border pixels + 2 sprites only, so it's cheap.
+- Thin edge gradient (all loading states): border pixels only, so it's very cheap. While thinking, the bubble is hidden, so Voice thinking costs about the same as Chat thinking.
 - The idle Home screen is static and costs nothing.
 
 ---

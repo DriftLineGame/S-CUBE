@@ -29,3 +29,4 @@ A design prototype of **SCOS**, the interface for the S-CUBE 1 handheld (Wavesha
 - **v0.1**: first build. Boot, Home, Voice (liquid bubble, hold to talk, thinking morph, spoken reply), Chat (custom keyboard, edge glow, streamed replies), Chats history, Account and Settings.
 - **v0.2**: fixed flicker in the liquid-glass bubble (phase jumps when the speed changed, 16-bit float precision on iPhone, per-word glow spikes).
 - **v0.3**: new **Device** look, now the default: everything maps to LVGL on the ESP32-S3 and animates at 30 fps (see PORTING.md). The original shader/glass look stays under Account → Look → Concept.
+- **v0.4**: removed the glowing orbs that circled the screen edge. All loading states (Chat and Voice, both looks) now use the thin edge gradient. Voice thinking/replies hide the bubble so the transcript (34 px) and reply (33 px) can use the whole screen. Also fixed the input bar getting stuck halfway when sending right after opening the keyboard.

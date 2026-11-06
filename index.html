@@ -223,9 +223,9 @@ body.kb #caret{display:block}
 #vHint{font-size:30px;font-weight:600;line-height:1.22;letter-spacing:-.02em;text-shadow:0 2px 16px rgba(0,0,0,.35)}
 #vSub{font-size:21px;color:rgba(255,255,255,.7);margin-top:10px;font-weight:500;min-height:26px}
 #vTrans .ph{color:rgba(255,255,255,.6);font-weight:500}
-#vTrans{position:absolute;left:56px;right:56px;top:150px;height:180px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:29px;font-weight:600;line-height:1.25;letter-spacing:-.015em;opacity:0;pointer-events:none;text-shadow:0 2px 16px rgba(0,0,0,.4)}
-#vState{position:absolute;left:0;right:0;bottom:62px;text-align:center;font-size:21px;font-weight:600;letter-spacing:.02em;color:rgba(255,255,255,.75);opacity:0;pointer-events:none}
-#vReply{position:absolute;left:34px;right:34px;top:236px;bottom:26px;font-size:29px;line-height:1.3;font-weight:500;letter-spacing:-.015em;opacity:0;-webkit-mask-image:linear-gradient(transparent 0,#000 22px,#000 100%);mask-image:linear-gradient(transparent 0,#000 22px,#000 100%);padding-top:14px}
+#vTrans{position:absolute;left:44px;right:44px;top:112px;height:256px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:34px;font-weight:600;line-height:1.25;letter-spacing:-.015em;opacity:0;pointer-events:none;text-shadow:0 2px 16px rgba(0,0,0,.4)}
+#vState{position:absolute;left:0;right:0;bottom:52px;text-align:center;font-size:21px;font-weight:600;letter-spacing:.02em;color:rgba(255,255,255,.75);opacity:0;pointer-events:none}
+#vReply{position:absolute;left:36px;right:36px;top:116px;bottom:26px;font-size:33px;line-height:1.28;font-weight:500;letter-spacing:-.015em;opacity:0;-webkit-mask-image:linear-gradient(transparent 0,#000 22px,#000 100%);mask-image:linear-gradient(transparent 0,#000 22px,#000 100%);padding-top:14px}
 #vReply .w{animation-duration:.42s}
 
 /* toast */
@@ -253,9 +253,6 @@ body.kb #caret{display:block}
 .blob.b3{background:radial-gradient(circle,rgba(59,130,246,.95) 0,rgba(59,130,246,0) 70%)}
 #dEdge{position:absolute;inset:0;opacity:0}
 #dEdge .ring{position:absolute;inset:0;border-radius:44px;border-style:solid}
-#dEdge .comet{position:absolute;left:0;top:0;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%}
-#dEdge .comet.c1{background:radial-gradient(circle,rgba(255,79,179,.95) 0,rgba(255,79,179,0) 70%)}
-#dEdge .comet.c2{background:radial-gradient(circle,rgba(59,130,246,.95) 0,rgba(59,130,246,0) 70%)}
 body.dev #fx{display:none!important}
 body.dev .glass{-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(255,255,255,.10);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.16)}
 body.dev .hb.voice .glass{background:linear-gradient(180deg,rgba(255,79,179,.52),rgba(59,130,246,.44))}
@@ -369,7 +366,7 @@ body.dev #pop{box-shadow:none}
     <div id="dfx">
       <div class="bb" id="dHalo1"></div>
       <div class="bb" id="dBub"><i class="blob b1"></i><i class="blob b2"></i><i class="blob b3"></i><div class="hl"></div></div>
-      <div id="dEdge"><div class="ring" id="dR3"></div><div class="ring" id="dR2"></div><div class="ring" id="dR1"></div><i class="comet c1"></i><i class="comet c2"></i></div>
+      <div id="dEdge"><div class="ring" id="dR2"></div><div class="ring" id="dR1"></div></div>
     </div>
     <div id="fxFallback"><div class="fb" id="fbB"></div><div class="fbe" id="fbE"></div></div>
     <div id="toast"></div>
@@ -383,7 +380,7 @@ body.dev #pop{box-shadow:none}
 <script>
 (()=>{
 'use strict';
-const VERSION = '0.3';
+const VERSION = '0.4';
 const $ = (s, r=document) => r.querySelector(s);
 const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
 const Q = new URLSearchParams(location.search);
@@ -495,8 +492,8 @@ void main(){
  if(uEdge>.001){
   vec2 q=p-240.;float ds=max(-sdRB(q,vec2(240.),44.),0.);float a=atan(q.y,q.x);
   float w=.5+.5*sin(a*3.+uT*2.1);float w2=.5+.5*sin(a*5.-uT*2.9+1.3);
-  float bw=9.+20.*w*w2+10.*uPulse;
-  float g=exp(-ds/bw)*.85+exp(-ds/2.5)*.6;
+  float bw=4.+5.*w*w2+3.*uPulse;
+  float g=exp(-ds/bw)*.55+exp(-ds/1.4)*.9;
   vec3 c=pal(a/6.2832+uT*.11+w*.08);
   float al=clamp(g*uEdge,0.,1.);
   o=vec4(c*al*1.25,al);
@@ -583,18 +580,15 @@ function palRGB(x){ x = ((x % 1) + 1) % 1 * 3; const i = Math.floor(x), f = x - 
 const rgba = (c, o) => `rgba(${c[0]},${c[1]},${c[2]},${o.toFixed(3)})`;
 const dfx = (() => {
   const root = $('#dfx'), bub = $('#dBub'), h1 = $('#dHalo1'), hl = $('#dBub .hl'), blobs = $$('#dBub .blob'),
-        edge = $('#dEdge'), r1 = $('#dR1'), r2 = $('#dR2'), r3 = $('#dR3'), comets = $$('#dEdge .comet');
-  r1.style.borderWidth = '4px'; r2.style.borderWidth = '12px'; r3.style.borderWidth = '26px';
-  let running = false, lastDraw = 0, lastT = 0, hue = 0, morph = 0, run = 0;
+        edge = $('#dEdge'), r1 = $('#dR1'), r2 = $('#dR2');
+  r1.style.borderWidth = '4px'; r2.style.borderWidth = '10px';
+  let running = false, lastDraw = 0, lastT = 0, hue = 0, morph = 0;
   const box = (el, x, y, w, h, r) => { el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.width = w + 'px'; el.style.height = h + 'px'; el.style.borderRadius = r + 'px'; };
-  // point on the screen's perimeter, u in [0,1)
-  const perim = u => { u = ((u % 1) + 1) % 1 * 4; const s = Math.floor(u), f = u - s, m = 6, L = 480 - m;
-    return s === 0 ? [m + f*(L-m), m] : s === 1 ? [L, m + f*(L-m)] : s === 2 ? [L - f*(L-m), L] : [m, L - f*(L-m)]; };
   function draw(now){
     const dt = lastT ? Math.min(.1, (now - lastT)/1000) : .033; lastT = now;
     B.lvl += (B.lvlT - B.lvl) * (B.lvlT > B.lvl ? .3 : .15); B.pulse *= .85;
     // integrated phases (no jumps when speeds change)
-    hue += dt * (.035 + .09*B.think); morph += dt * (1 + 1.2*B.think + .8*B.lvl); run += dt * (.09 + .05*B.pulse);
+    hue += dt * (.035 + .09*B.think + .06*B.edge); morph += dt * (1 + 1.2*B.think + .8*B.lvl);
     const t = now/1000, th = B.think, lv = B.lvl;
     if (B.alpha > .001) {
       const sq = Math.sin(morph*1.6) * (4*B.wob + 14*th);          // gentle squish (lv_anim on width/height)
@@ -624,8 +618,8 @@ const dfx = (() => {
     if (B.edge > .001) {
       const c = palRGB(hue*2);
       edge.style.opacity = B.edge.toFixed(3);
-      r1.style.borderColor = rgba(c, .85); r2.style.borderColor = rgba(palRGB(hue*2 + .2), .28); r3.style.borderColor = rgba(palRGB(hue*2 + .4), .11);
-      comets.forEach((cm, i) => { const p = perim(i ? -run + .5 : run); cm.style.transform = `translate(${p[0].toFixed(1)}px,${p[1].toFixed(1)}px)`; cm.style.opacity = (.75 + .25*B.pulse).toFixed(3); });
+      // thin edge gradient: a 4 px ring plus a faint 10 px band, colour cycling pink -> violet -> blue
+      r1.style.borderColor = rgba(c, .9); r2.style.borderColor = rgba(palRGB(hue*2 + .15), .2 + .1*B.pulse);
       edge.style.display = 'block';
     } else edge.style.display = 'none';
   }
@@ -924,7 +918,7 @@ kbEl.addEventListener('pointerup', kbUp); kbEl.addEventListener('pointercancel',
 function kbShow(){
   if (thinking || document.body.classList.contains('kb')) return;
   document.body.classList.add('kb'); shift = autoShift() ? 1 : 0; numMode = false; buildKb(); setField();
-  A.kill(kbEl); A.to(kbEl, { y:0, duration:.55, ease:'expo.out' });
+  [kbEl, $("#ibar"), $("#chatHdr"), $("#micBtn")].forEach(A.kill); A.to(kbEl, { y:0, duration:.55, ease:'expo.out' });
   A.to($('#ibar'), { y:-282 + 20 - 8, duration:.55, ease:'expo.out' });
   A.to($('#chatHdr'), { y:-110, opacity:0, duration:.4, ease:'power2.out' });
   A.to($('#micBtn'), { scale:0, opacity:0, duration:.25 });
@@ -937,7 +931,7 @@ function kbHide(instant){
   document.body.classList.remove('kb');
   const d = instant ? 0 : .5;
   if (!wasOpen && !instant) return;
-  A.kill(kbEl);
+  [kbEl, $("#ibar"), $("#chatHdr"), $("#micBtn")].forEach(A.kill);
   A.to(kbEl, { y:282, duration:d, ease:'expo.out' });
   A.to($('#ibar'), { y:0, duration:d, ease:'expo.out' });
   A.to($('#chatHdr'), { y:0, opacity:1, duration:d, ease:'expo.out' });
@@ -1070,7 +1064,6 @@ function speak(txt, onBoundary){
 /* ================= VOICE MODE ================= */
 const V = { state:'off', conv:null, rec:null, recOk:null, finalTxt:'', interim:'', holdStart:0, stream:null, an:null, data:null, ctx:null, simT:0, recEnded:null, levelRaf:0 };
 const FULL = { cx:240, cy:240, hx:216, hy:216, r:96 };
-const COMPACT = { cx:240, cy:126, hx:84, hy:84, r:62 };
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 const DEMO_Q = ['What can you do?', 'Tell me a joke', 'Plan my day', 'What time is it?', 'Give me a quick dinner idea'];
 let demoQi = 0;
@@ -1119,7 +1112,7 @@ function closeVoice(toHome){
   const target = (!toHome && c && c.messages.length) ? 'chat' : 'home';
   if (target === 'chat') { conv = c; onEnter('chat', { keepConv:true }); }
   A.kill(B);
-  A.to(B, { hx:40, hy:40, r:40, cx:240, cy:240, alpha:0, think:0, lvl:0, lvlT:0, duration:.55, ease:'power2.in', onComplete: fxMaybeStop });
+  A.to(B, { hx:40, hy:40, r:40, cx:240, cy:240, alpha:0, edge:0, think:0, lvl:0, lvlT:0, duration:.55, ease:'power2.in', onComplete: fxMaybeStop });
   A.to([$('#vX'), $('#vCenter'), $('#vReply'), $('#vTrans'), $('#vState')], { opacity:0, duration:.25 });
   const t = scr(target); t.classList.add('on'); t.style.transformOrigin = '50% 50%';
   A.fromTo(t, { opacity:0, scale:isDev() ? 1 : 1.06, x:0 }, { opacity:1, scale:1, duration:.6, delay:.2, ease:'expo.out' });
@@ -1175,8 +1168,9 @@ function talkStart(){
   $('#vTrans span').innerHTML = '<span class="ph">I\'m listening…</span>';
   setVoiceUI('listen');
   A.kill(B);
-  A.to(B, Object.assign({}, FULL, { duration:.7, ease: G ? 'elastic.out(1,0.8)' : 'back.out' }));
-  A.to(B, { think:0, duration:.4 });
+  if (B.alpha < .5) { Object.assign(B, { cx:240, cy:240, hx:70, hy:70, r:70, alpha:Math.max(B.alpha, .01) }); FX().start(); }
+  A.to(B, Object.assign({}, FULL, { alpha:1, duration:.7, ease: G ? 'elastic.out(1,0.8)' : 'back.out' }));
+  A.to(B, { think:0, edge:0, duration:.4 });
   micLevelStart();
   if (SR && !Q.has('nosr')) {
     try {
@@ -1195,7 +1189,12 @@ async function talkEnd(){
   V.state = 'endlisten'; cancelAnimationFrame(V.levelRaf); B.lvlT = 0;
   if (V.rec) { try { V.rec.stop(); } catch(e){} await Promise.race([V.recEnded, sleep(1600)]); V.rec = null; }
   let q = (V.finalTxt + ' ' + V.interim).trim();
-  if (held < 280 && !q) { V.state = 'idle'; setVoiceUI(V.conv && V.conv.messages.length ? 'reply' : 'idle'); toast('Hold to talk, release to send'); return; }
+  if (held < 280 && !q) {
+    const back2reply = V.conv && V.conv.messages.length;
+    V.state = 'idle'; setVoiceUI(back2reply ? 'reply' : 'idle'); toast('Hold to talk, release to send');
+    if (back2reply) { A.kill(B); A.to(B, { hx:70, hy:70, r:70, alpha:0, duration:.4, ease:'power2.in' }); }
+    return;
+  }
   let simulated = false;
   if (!q) {
     if (V.recOk === true) { V.state = 'idle'; setVoiceUI('idle'); $('#vHint').innerHTML = "Didn't catch that.<br>Hold to try again"; return; }
@@ -1211,18 +1210,17 @@ async function voiceAsk(q, simulated){
   else tEl.textContent = q;
   if (!V.conv) V.conv = newConv(true);
   V.conv.messages.push({ r:'u', t:q }); commitConv(V.conv); usage.voice++; usage.msgs++; store.set('scos.usage', usage);
-  // thinking: ~5s of flowing, morphing liquid
+  // thinking (~5 s): the bubble shrinks away and the thin edge gradient takes over, leaving the screen for big text
   A.kill(B);
-  A.to(B, { think:1, duration:1.2, ease:'sine.inOut' });
-  A.to(B, { hx:FULL.hx - 22, hy:FULL.hy - 22, r:150, duration:2.4, ease:'sine.inOut', yoyo:true, repeat:1 });
+  A.to(B, { hx:70, hy:70, r:70, cx:240, cy:240, alpha:0, think:0, lvl:0, lvlT:0, duration:.5, ease:'power2.in' });
+  A.to(B, { edge:1, duration:.8, delay:.2, ease:'power2.out' });
   const ans = aiReply(q);
   await sleep(5000);
   if (cur !== 'voice' || V.state !== 'think') return;
-  // reply: bubble settles to compact at the top, text types out at the bottom
+  // reply: big text fills the screen; the edge ring dims while it is spoken, then fades out
   V.state = 'reply';
   A.kill(B);
-  A.to(B, { think:.15, duration:.8 });
-  A.to(B, Object.assign({}, COMPACT, { duration:.9, ease: G ? 'elastic.out(1,0.8)' : 'back.out' }));
+  A.to(B, { edge:.4, duration:.6 });
   A.to($('#vTrans'), { opacity:0, duration:.3 });
   A.to($('#vState'), { opacity:0, duration:.3 });
   const rEl = $('#vReply'); rEl.innerHTML = ''; A.set(rEl, { opacity:1 });
@@ -1235,7 +1233,7 @@ async function voiceAsk(q, simulated){
   sp.then(() => { ended = true; });
   let lastT = performance.now();
   await streamWords(rEl, ans, {
-    onWord(){ B.pulse = .5; B.lvlT = .22; setTimeout(()=>{ if (V.state === 'reply') B.lvlT = .08; }, 220); rEl.scrollTop = rEl.scrollHeight; },
+    onWord(){ B.pulse = .5; rEl.scrollTop = rEl.scrollHeight; },
     wait: async (i) => {
       // reveal in sync with speech when word boundaries are reported; otherwise at a steady speaking pace
       const pace = settings.voice ? 300 : 85;
@@ -1251,7 +1249,7 @@ async function voiceAsk(q, simulated){
   });
   V.conv.messages.push({ r:'a', t:ans }); commitConv(V.conv);
   await sp;
-  if (V.state === 'reply') { B.lvlT = 0; A.to(B, { think:0, duration:1 }); }
+  if (V.state === 'reply') { B.lvlT = 0; A.to(B, { edge:0, duration:.9 }); }
 }
 function stopVoiceAll(){
   V.state = 'off'; cancelAnimationFrame(V.levelRaf);
