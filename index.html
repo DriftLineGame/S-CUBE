@@ -336,7 +336,7 @@ body.kb #caret{display:block}
 <script>
 (()=>{
 'use strict';
-const VERSION = '0.1';
+const VERSION = '0.2';
 const $ = (s, r=document) => r.querySelector(s);
 const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
 const Q = new URLSearchParams(location.search);
@@ -423,15 +423,20 @@ function tick(){
 setInterval(()=>{ batt = Math.max(5, batt - 0.05); tick(); }, 15000); tick();
 
 /* ================= WebGL FX: voice bubble + edge glow ================= */
-const B = { cx:240, cy:240, hx:216, hy:216, r:110, alpha:0, edge:0, pulse:0, lvl:0, lvlT:0, think:0, wob:1 };
+const TAU100 = Math.PI * 200;
+const B = { flow:0, cx:240, cy:240, hx:216, hy:216, r:110, alpha:0, edge:0, pulse:0, lvl:0, lvlT:0, think:0, wob:1 };
 const fx = (() => {
   const cv = $('#fx');
   let gl = null;
   try { gl = cv.getContext('webgl', { alpha:true, premultipliedAlpha:true, antialias:false, powerPreference:'high-performance' }); } catch(e){}
   if (!gl || Q.has('nogl')) return { ok:false, start(){ $('#fxFallback').style.display='block'; fbLoop(); }, stop(){}, resize(){} };
   const VS = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
-  const FS = `precision mediump float;
-uniform vec2 uRes;uniform float uT;uniform vec4 uBox;uniform float uR,uLvl,uThink,uWob,uAlpha,uEdge,uPulse;
+  const FS = `#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+uniform vec2 uRes;uniform float uT,uF;uniform vec4 uBox;uniform float uR,uLvl,uThink,uWob,uAlpha,uEdge,uPulse;
 float sdRB(vec2 p,vec2 b,float r){vec2 q=abs(p)-b+r;return length(max(q,0.))+min(max(q.x,q.y),0.)-r;}
 vec3 pal(float x){x=fract(x)*3.;vec3 P=vec3(1.,.31,.70),V=vec3(.55,.36,.96),Bl=vec3(.23,.51,.96);
  if(x<1.)return mix(P,V,smoothstep(0.,1.,x));if(x<2.)return mix(V,Bl,smoothstep(1.,2.,x));return mix(Bl,P,smoothstep(2.,3.,x));}
@@ -459,7 +464,7 @@ void main(){
   float inside=clamp(.5-d/1.3,0.,1.);
   float rim=exp(-abs(d)/2.2);
   float fres=smoothstep(-min(b.x,b.y)*.75,0.,d);
-  float t=uT*(.22+th*.85+uLvl*.5);
+  float t=uF;
   vec2 w=n+.28*vec2(sin(n.y*3.1+t*1.7),cos(n.x*2.7-t*1.3))*(.6+th*1.2+uLvl);
   vec3 liq=pal(w.x*.42+w.y*.3+t*.12);
   float m=0.;
@@ -483,7 +488,7 @@ void main(){
   gl.useProgram(pr);
   const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,3,-1,-1,3]), gl.STATIC_DRAW);
   const loc = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-  const U = {}; ['uRes','uT','uBox','uR','uLvl','uThink','uWob','uAlpha','uEdge','uPulse'].forEach(n => U[n] = gl.getUniformLocation(pr, n));
+  const U = {}; ['uRes','uT','uF','uBox','uR','uLvl','uThink','uWob','uAlpha','uEdge','uPulse'].forEach(n => U[n] = gl.getUniformLocation(pr, n));
   let k = 1, running = false, raf = 0, slow = 0, last = 0, maxK = Q.has('lowfx') ? 1 : 1.75;
   function resize(){ k = Math.max(1, Math.min(maxK, (window.devicePixelRatio||1) * SCALE)); const px = Math.round(480*k); if (cv.width !== px) { cv.width = cv.height = px; } gl.viewport(0,0,px,px); }
   function frame(now){
@@ -492,10 +497,14 @@ void main(){
     const dt = last ? now - last : 16; last = now;
     // adaptive quality: if frames are slow, drop resolution
     if (dt > 24 && dt < 200) { if (++slow > 40 && maxK > 1) { maxK = Math.max(1, maxK - .35); slow = 0; resize(); } } else slow = Math.max(0, slow-1);
-    B.lvl += (B.lvlT - B.lvl) * (B.lvlT > B.lvl ? .35 : .12);
-    B.pulse *= .92;
+    B.lvl += (B.lvlT - B.lvl) * (B.lvlT > B.lvl ? .16 : .08);
+    B.pulse *= .94;
+    // Integrate the flow phase instead of multiplying time by a changing speed (that caused phase jumps = flicker).
+    // Both phases wrap at 200π, where every shader frequency (2 decimals) completes whole cycles, so the wrap is seamless.
+    const dts = Math.min(dt, 50) / 1000;
+    B.flow = (B.flow + dts * (.22 + .85*B.think + .5*B.lvl)) % TAU100;
     gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.uniform2f(U.uRes, cv.width, cv.height); gl.uniform1f(U.uT, (now/1000) % 1000);
+    gl.uniform2f(U.uRes, cv.width, cv.height); gl.uniform1f(U.uT, (now/1000) % TAU100); gl.uniform1f(U.uF, B.flow);
     gl.uniform4f(U.uBox, B.cx, B.cy, B.hx, B.hy); gl.uniform1f(U.uR, B.r);
     gl.uniform1f(U.uLvl, B.lvl); gl.uniform1f(U.uThink, B.think); gl.uniform1f(U.uWob, B.wob);
     gl.uniform1f(U.uAlpha, B.alpha); gl.uniform1f(U.uEdge, B.edge); gl.uniform1f(U.uPulse, B.pulse);
@@ -1049,7 +1058,7 @@ function talkStart(){
       const r = new SR(); V.rec = r; r.lang = 'en-US'; r.interimResults = true; r.continuous = true; r.maxAlternatives = 1;
       V.recEnded = new Promise(res => { r.onend = res; });
       r.onresult = ev => { let fin = '', int = ''; for (let i = 0; i < ev.results.length; i++) { const t = ev.results[i][0].transcript; if (ev.results[i].isFinal) fin += t; else int += t; }
-        V.finalTxt = fin; V.interim = int; V.recOk = true; $('#vTrans span').textContent = (fin + int).trim(); B.pulse = 1; B.lvlT = Math.max(B.lvlT, .5); };
+        V.finalTxt = fin; V.interim = int; V.recOk = true; $('#vTrans span').textContent = (fin + int).trim(); B.lvlT = Math.max(B.lvlT, .35); };
       r.onerror = ev => { if (V.recOk !== true) V.recOk = false; };
       r.start();
     } catch(e){ V.rec = null; V.recOk = false; }
@@ -1101,7 +1110,7 @@ async function voiceAsk(q, simulated){
   sp.then(() => { ended = true; });
   let lastT = performance.now();
   await streamWords(rEl, ans, {
-    onWord(){ B.pulse = 1; B.lvlT = .55; setTimeout(()=>{ if (V.state === 'reply') B.lvlT = 0; }, 140); rEl.scrollTop = rEl.scrollHeight; },
+    onWord(){ B.pulse = .5; B.lvlT = .22; setTimeout(()=>{ if (V.state === 'reply') B.lvlT = .08; }, 220); rEl.scrollTop = rEl.scrollHeight; },
     wait: async (i) => {
       // reveal in sync with speech when word boundaries are reported; otherwise at a steady speaking pace
       const pace = settings.voice ? 300 : 85;

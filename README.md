@@ -26,3 +26,4 @@ A design prototype of **SCOS**, the interface for the S-CUBE 1 handheld (Wavesha
 
 ## Versions
 - **v0.1**: first build. Boot, Home, Voice (liquid bubble, hold to talk, thinking morph, spoken reply), Chat (custom keyboard, edge glow, streamed replies), Chats history, Account and Settings.
+- **v0.2**: fixed flicker in the liquid-glass bubble (phase jumps when the speed changed, 16-bit float precision on iPhone, per-word glow spikes).
